@@ -19,20 +19,32 @@ export default function PlayerHand({
   const [dragFromIdx, setDragFromIdx] = useState(null)
   const [dragOverIdx, setDragOverIdx] = useState(null)
 
-  // Track newly added card for animation
+  // Track newly added/replaced card for animation
   const handSlots = player.hand ?? []
-  const prevLengthRef = useRef(handSlots.length)
+  const prevHandRef = useRef([])
   const [animatingIdx, setAnimatingIdx] = useState(null)
 
   useEffect(() => {
-    const prevLen = prevLengthRef.current
-    const currLen = handSlots.length
-    if (currLen > prevLen) {
-      setAnimatingIdx(currLen - 1)
+    const prev = prevHandRef.current
+    const curr = handSlots
+    let changedIdx = -1
+
+    for (let i = 0; i < curr.length; i++) {
+      const prevCard = prev[i]?.card
+      const currCard = curr[i]?.card
+      if (currCard && prev.length > 0 && (!prevCard || prevCard.suit !== currCard.suit || prevCard.value !== currCard.value)) {
+        changedIdx = i
+        break
+      }
+    }
+
+    if (changedIdx >= 0) {
+      setAnimatingIdx(changedIdx)
       setTimeout(() => setAnimatingIdx(null), 500)
     }
-    prevLengthRef.current = currLen
-  }, [handSlots.length])
+
+    prevHandRef.current = curr
+  }, [handSlots])
 
   function peekAt(position) {
     setRevealedPositions(prev => new Set([...prev, position]))
@@ -142,7 +154,7 @@ export default function PlayerHand({
                 card={cardObj}
                 faceDown={faceDown}
                 size={compact ? 'small' : 'normal'}
-                highlighted={isHighlighted && !isSelected}
+                highlighted={isHighlighted && !isSelected && !isNewCard}
                 selected={isSelected}
                 onClick={handleClick}
                 dealDelay={0}
